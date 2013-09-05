@@ -23,3 +23,10 @@ Example run (for SVN):
 rip-svn.pl -v -u http://www.example.com/.svn/
 
 it will automatically do "svn revert -R ."
+
+CVS
+===========
+Example run (for CVS):
+rip-cvs.pl -v -u http://www.example.com/CVS/
+
+This will not rip CVS, but it will display useful info
