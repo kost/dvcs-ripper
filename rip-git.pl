@@ -58,6 +58,8 @@ my $gd=$config{'gitdir'}."/";
 
 mkdir $gd;
 
+print STDERR "[i] Downloading git files from $config{'url'}\n" if ($config{'verbose'}>0);
+
 foreach my $file (@gitfiles) {
 	my $furl = $config{'url'}."/".$file;
 	getfile($file,$gd.$file);
