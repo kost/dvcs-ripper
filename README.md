@@ -17,7 +17,9 @@ it will automatically do "git checkout -f"
 
 SVN
 ===========
-It supports newer version of svn client format which has wc.db in .svn directory. 
+It supports OLDER and NEWER version of svn client formats. Older is with .svn files in every directory, while
+newer version have single .svn directory and wc.db in .svn directory. It will automatically detect which 
+format is used on the target.
 
 Example run (for SVN):
 rip-svn.pl -v -u http://www.example.com/.svn/
