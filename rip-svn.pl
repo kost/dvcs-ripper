@@ -16,6 +16,7 @@ $config{'agent'} = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.7; rv:10.0.2) Geck
 $config{'verbose'}=0;
 $config{'checkout'}=1;
 $config{'outdir'}='./';
+$config{'upgrade'}=1;
 
 if (-e $configfile) {
 	open(CONFIG,"<$configfile") or next;
@@ -104,10 +105,12 @@ if (-e "$config{'scmdir'}/wc.db") {
 	if (-e "$config{'scmdir'}/entries") {
 		print STDERR "[i] Found old SVN client storage format!\n";
 		svnentries('',$config{'outdir'});
-		if ($config{'checkout'}) {
+		if ($config{'checkout'} and $config{'upgrade'}) {
+			print STDERR "[i] Running upgrade, if you get errors, ignore if using older client\n";
 			system("svn upgrade");
 		}
 		checkout();
+		print STDERR "[i] Due to limitations, to get full tree - run this utility few times!\n";
 	} else {
 		print STDERR "[i] Could not identify SVN format. Are you sure it's SVN there?\n";
 		print STDERR "[i] Anyway, take a look at ".$config{'scmurl'}."/"."entries\n";
@@ -116,6 +119,7 @@ if (-e "$config{'scmdir'}/wc.db") {
 
 sub checkout {
 	if ($config{'checkout'}) {
+		print STDERR "[i] Trying to revert the tree, if you get error, upgrade your SVN client!\n";
 		system("svn revert -R .");
 	}
 }
