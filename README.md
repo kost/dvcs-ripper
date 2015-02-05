@@ -11,9 +11,10 @@ Make sure to position yourself in empty directory where you want repositories to
 GIT
 ===========
 Example run (for git):
-rip-git.pl -v -u http://www.example.com/.git/
 
-it will automatically do "git checkout -f"
+`rip-git.pl -v -u http://www.example.com/.git/`
+
+It will automatically do `git checkout -f`
 
 SVN
 ===========
@@ -22,13 +23,15 @@ newer version have single .svn directory and wc.db in .svn directory. It will au
 format is used on the target.
 
 Example run (for SVN):
-rip-svn.pl -v -u http://www.example.com/.svn/
 
-it will automatically do "svn revert -R ."
+`rip-svn.pl -v -u http://www.example.com/.svn/`
+
+It will automatically do `svn revert -R .`
 
 CVS
 ===========
 Example run (for CVS):
-rip-cvs.pl -v -u http://www.example.com/CVS/
 
-This will not rip CVS, but it will display useful info
+`rip-cvs.pl -v -u http://www.example.com/CVS/`
+
+This will not rip CVS, but it will display useful info.
