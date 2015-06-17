@@ -95,20 +95,29 @@ mkdir $gd."refs/remotes";
 mkdir $gd."refs/tags";
 
 my $pcount=1;
+my $fcount=0;
 while ($pcount>0) {
 	print STDERR "[i] Running git fsck to check for missing items\n" if ($config{'verbose'}>0);
 	open(PIPE,"git fsck |") or die "cannot find git: $!";
 	$pcount=0;
+	$fcount=0;
 	while (<PIPE>) {
 		chomp;
 		if (/^missing/) {
 			my @getref = split (/\s+/);
-			getobject($gd,$getref[2]); # 3rd field is sha1 
+			my $res = getobject($gd,$getref[2]); # 3rd field is sha1 
+			if ($res->is_success) {
+				$fcount++;
+			}
 			$pcount++;
 		}
 	}
 	close(PIPE);
 	print STDERR "[i] Got items with git fsck: $pcount\n" if ($config{'verbose'}>0);
+	print STDERR "[i] Items fetched: $fcount\n" if ($config{'verbose'}>0);
+	if ($fcount == 0) {
+		last;
+	}
 }
 
 if ($config{'checkout'}) {
