@@ -16,6 +16,10 @@ Example run (for git):
 
 It will automatically do `git checkout -f`
 
+or if you would like to ignore SSL certification verification (with -s):
+
+`rip-git.pl -s -v -u http://www.example.com/.git/`
+
 SVN
 ===========
 It supports OLDER and NEWER version of svn client formats. Older is with .svn files in every directory, while
