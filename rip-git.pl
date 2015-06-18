@@ -2,6 +2,7 @@
 
 use strict;
 
+use IO::Socket::SSL;
 use LWP;
 use LWP::UserAgent;
 use HTTP::Request;
@@ -36,7 +37,7 @@ my $result = GetOptions (
 	"b|branch=s" => \$config{'branch'},
 	"u|url=s" => \$config{'url'},
 	"c|checkout!" => \$config{'checkout'},
-	"s|verifyssl!" => \$config{'verifyssl'},
+	"s|sslignore!" => \$config{'sslignore'},
 	"v|verbose+"  => \$config{'verbose'},
 	"h|help" => \&help
 );
@@ -52,7 +53,12 @@ my @gitfiles=(
 
 my @commits;
 my $ua = LWP::UserAgent->new;
+
 $ua->agent($config{'agent'});
+
+if ($config{'sslignore'}) {
+	$ua->ssl_opts(SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_NONE, verify_hostname => 0);
+}
 
 my $gd=$config{'gitdir'}."/";
 
