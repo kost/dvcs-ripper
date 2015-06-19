@@ -36,6 +36,7 @@ my $result = GetOptions (
 	"a|agent=s" => \$config{'agent'},
 	"b|branch=s" => \$config{'branch'},
 	"u|url=s" => \$config{'url'},
+	"p|proxy=s" => \$config{'proxy'},
 	"c|checkout!" => \$config{'checkout'},
 	"s|sslignore!" => \$config{'sslignore'},
 	"v|verbose+"  => \$config{'verbose'},
@@ -58,6 +59,10 @@ $ua->agent($config{'agent'});
 
 if ($config{'sslignore'}) {
 	$ua->ssl_opts(SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_NONE, verify_hostname => 0);
+}
+if ($config{'proxy'}) {
+	# for socks proxy make sure you have LWP::Protocol::socks
+	$ua->proxy(['http', 'https'], $config{'proxy'});
 }
 
 my $gd=$config{'gitdir'}."/";
@@ -164,12 +169,14 @@ sub help {
 	print " -c	perform 'git checkout -f' on end (default)\n";
 	print " -b <s>	Use branch <s> (default: $config{'branch'})\n";
 	print " -a <s>	Use agent <s> (default: $config{'agent'})\n";
-	print " -s	verify SSL cert\n";
+	print " -s	do not verify SSL cert\n";
+	print " -p <h>	use proxy <h> for connections\n";
 	print " -v	verbose (-vv will be more verbose)\n";
 	print "\n";
-
 	print "Example: $0 -v -u http://www.example.com/.git/\n";
 	print "Example: $0 # with url and options in $configfile\n";
+	print "Example: $0 -v -u -p socks://localhost:1080 http://www.example.com/.git/\n";
+	print "For socks like proxy, make sure you have LWP::Protocol::socks\n";
 	
 	exit 0;
 }
