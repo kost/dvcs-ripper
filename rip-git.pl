@@ -6,6 +6,7 @@ use IO::Socket::SSL;
 use LWP;
 use LWP::UserAgent;
 use HTTP::Request;
+use HTTP::Response;
 use Getopt::Long;
 
 my $configfile="$ENV{HOME}/.rip-git";
@@ -15,6 +16,20 @@ $config{'gitdir'} = ".git";
 $config{'agent'} = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.7; rv:10.0.2) Gecko/20100101 Firefox/10.0.2';
 $config{'verbose'}=0;
 $config{'checkout'}=1;
+
+$config{'respdetectmax'}=3;
+$config{'resp404size'}=256;
+$config{'resp404reqsize'}=32;
+
+$config{'gitpackbasename'}='pack';
+
+sub randomstr  {
+	my($num) = @_;
+	my @chars = ("A".."Z", "a".."z");
+	my $string;
+	$string .= $chars[rand @chars] for 1..$num;
+	return $string;
+}
 
 if (-e $configfile) {
 	open(CONFIG,"<$configfile") or next;
@@ -71,6 +86,39 @@ mkdir $gd;
 
 print STDERR "[i] Downloading git files from $config{'url'}\n" if ($config{'verbose'}>0);
 
+
+my @resp404;
+my $respdetectmax=$config{'respdetectmax'};
+print STDERR "[i] Auto-detecting 404 as 200 with $config{'respdetectmax'} requests\n" if ($config{'verbose'}>0);
+$config{'resp404correct'}=0;
+for (my $i=0; $i<$respdetectmax;$i++) {
+	my $resp=getreq(randomstr($config{'resp404reqsize'}));
+	if ($resp->is_success) {
+		push @resp404, $resp;
+	} else {
+		$config{'resp404correct'}=1;
+		last; # exit loop
+	}
+}
+
+if ($config{'resp404correct'}) {
+	print STDERR "[i] Getting correct 404 responses\n" if ($config{'verbose'}>0);
+} else {
+	print STDERR "[i] Getting 200 as 404 responses. Adapting...\n" if ($config{'verbose'}>0);
+	my $oldchopresp = substr($resp404[0]->content,0,$config{'resp404size'});
+	foreach my $entry (@resp404) {
+		my $chopresp=substr($entry->content,0,$config{'resp404size'});
+		if ($oldchopresp eq $chopresp) {
+			$oldchopresp=substr($entry->content,0,$config{'resp404size'});
+		} else {
+			print STDERR "[i] 404 responses are different, you will have to customize script source code\n";
+			$config{'resp404content'}=$chopresp;
+			last; # exit loop
+		}
+	}
+	$config{'resp404content'}=$oldchopresp;
+}
+
 foreach my $file (@gitfiles) {
 	my $furl = $config{'url'}."/".$file;
 	getfile($file,$gd.$file);
@@ -105,6 +153,23 @@ my $res = getfile("refs/heads/".$config{'branch'},$gd."refs/heads/".$config{'bra
 mkdir $gd."refs/remotes";
 mkdir $gd."refs/tags";
 
+# process packs file: objects/info/packs 
+my $infopacks='objects/info/packs';
+my $res=getrealreq($infopacks);
+if ($res->is_success) {
+	print STDERR "[!] found info file for packs, trying to process them: $infopacks\n" if ($config{'verbose'}>0);
+	writefile($gd.$infopacks,$res->content);
+	my @items=split("\n",$res->content);
+	foreach my $item (@items) {
+		print STDERR "[d] processing packs entry: $item\n" if ($config{'verbose'}>1);
+		my ($imark,$ifile) = split(" ",$item);
+		my $packfn="objects/pack/$ifile";
+		getfile($packfn,$gd.$packfn);
+		$packfn=~s/\.pack$/.idx/g;
+		getfile($packfn,$gd.$packfn);
+	}
+}
+
 my $pcount=1;
 my $fcount=0;
 while ($pcount>0) {
@@ -135,13 +200,48 @@ if ($config{'checkout'}) {
 	system("git checkout -f");
 }
 
-
 sub getobject {
 	my ($gd,$ref) = @_;
 	my $rdir = substr ($ref,0,2);
 	my $rfile = substr ($ref,2);
 	mkdir $gd."objects/$rdir";
 	getfile("objects/$rdir/$rfile",$gd."objects/$rdir/$rfile");
+}
+
+sub getreq {
+	my ($file) = @_;
+	my $furl = $config{'url'}."/".$file;
+	my $req = HTTP::Request->new(GET => $furl);
+	# Pass request to the user agent and get a response back
+	my $res = $ua->request($req);
+	return $res;
+}
+
+sub getrealreq {
+	my ($file) = @_;
+	my $res = getreq($file);
+	if ($res->is_success) {
+		if (not $config{'resp404correct'}) {
+			print STDERR "[d] got 200 for packs but checking content\n" if ($config{'verbose'}>1);
+			my $chopresp=substr($res->content,0,$config{'resp404size'});
+			if ($chopresp eq $config{'resp404content'}) {
+				print STDERR "[!] Not found for: 404 as 200\n" 
+				if ($config{'verbose'}>0);
+				# return not found
+				my $r = HTTP::Response->new(404);
+				# $r = HTTP::Response->new( $code, $msg, $header, $content )
+				return $r;
+			}
+		} 
+	}
+	return $res;
+}
+
+sub writefile {
+	my ($file, $content) = @_;
+	open(my $fh, '>', $file) or return undef;
+	print $fh $content;
+	close $fh;
 }
 
 sub getfile {
@@ -151,6 +251,16 @@ sub getfile {
 	# Pass request to the user agent and get a response back
 	my $res = $ua->request($req);
 	if ($res->is_success) {
+		if (not $config{'resp404correct'}) {
+			print STDERR "[d] got 200 for $file, but checking content\n" if ($config{'verbose'}>1);;
+			my $chopresp=substr($res->content,0,$config{'resp404size'});
+			if ($chopresp eq $config{'resp404content'}) {
+				print STDERR "[!] Not found for $file: 404 as 200\n" 
+				if ($config{'verbose'}>0);
+				my $r = HTTP::Response->new(404);
+				return $r;
+			}
+		} 
 		print STDERR "[d] found $file\n" if ($config{'verbose'}>0);;
 		open (out,">$outfile") or die ("cannot open file: $!");
 		print out $res->content;
