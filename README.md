@@ -58,7 +58,7 @@ This will not rip CVS, but it will display useful info.
 - [x] Support for objects/info/packs from https://www.kernel.org/pub/software/scm/git/docs/gitrepository-layout.html
 - [ ] Support for brute forcing pack names 
 - [x] Recognize 404 pages which return 200 
-- [ ] Introduce ignore SSL/TLS verification in SVN/CVS
+- [x] Introduce ignore SSL/TLS verification in SVN/CVS
 
 
 

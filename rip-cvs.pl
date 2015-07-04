@@ -2,6 +2,7 @@
 
 use strict;
 
+use IO::Socket::SSL;
 use LWP;
 use LWP::UserAgent;
 use HTTP::Request;
@@ -38,7 +39,7 @@ my $result = GetOptions (
 	"b|branch=s" => \$config{'branch'},
 	"u|url=s" => \$config{'url'},
 	"c|checkout!" => \$config{'checkout'},
-	"s|verifyssl!" => \$config{'verifyssl'},
+	"s|sslignore!" => \$config{'sslignore'},
 	"v|verbose+"  => \$config{'verbose'},
 	"h|help" => \&help
 );
@@ -58,6 +59,10 @@ if ($config{'verbose'}>3) {
 
 my $ua = LWP::UserAgent->new;
 $ua->agent($config{'agent'});
+
+if ($config{'sslignore'}) {
+	$ua->ssl_opts(SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_NONE, verify_hostname => 0);
+}
 
 # normalize URL
 if ($config{'url'} =~ /\/\CVS/) {
@@ -181,7 +186,7 @@ sub help {
 	print " -c	perform 'checkout' on end (default)\n";
 	print " -b <s>	Use branch <s> (default: $config{'branch'})\n";
 	print " -a <s>	Use agent <s> (default: $config{'agent'})\n";
-	print " -s	verify SSL cert\n";
+	print " -s	ignore SSL certification verification\n";
 	print " -v	verbose (-vv will be more verbose)\n";
 	print "\n";
 
