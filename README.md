@@ -1,7 +1,7 @@
 dvcs-ripper
 ===========
 
-Rip web accessible (distributed) version control systems: SVN, GIT, ...
+Rip web accessible (distributed) version control systems: SVN, GIT, Mercurial/hg, ...
 
 It can rip repositories even when directory browsing is turned off. 
 
@@ -19,6 +19,19 @@ It will automatically do `git checkout -f`
 or if you would like to ignore SSL certification verification (with -s):
 
 `rip-git.pl -s -v -u http://www.example.com/.git/`
+
+Mercurial/HG
+===========
+Example run (for hg):
+
+`rip-hg.pl -v -u http://www.example.com/.hg/`
+
+It will automatically do `hg revert <file>`
+
+or if you would like to ignore SSL certification verification (with -s):
+
+`rip-hg.pl -s -v -u http://www.example.com/.hg/`
+
 
 SVN
 ===========
