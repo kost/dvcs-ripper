@@ -7,6 +7,12 @@ It can rip repositories even when directory browsing is turned off.
 
 Make sure to position yourself in empty directory where you want repositories to be downloaded/cloned.
 
+### Requirements
+
+- Perl
+- Perl modules: LWP, IO::Socket::SSL
+- (D)VCS client which you want to rip (cvs, svn, git, hg, ...)
+
 
 GIT
 ===========
@@ -53,12 +59,13 @@ Example run (for CVS):
 
 This will not rip CVS, but it will display useful info.
 
-
-### Todo
-- [x] Support for objects/info/packs from https://www.kernel.org/pub/software/scm/git/docs/gitrepository-layout.html
+### ToDo
+- [ ] Recognize 404 pages which return 200 in SVN/CVS
 - [ ] Support for brute forcing pack names 
+- [ ] Bzr support
+
+### Done
+- [x] Support for objects/info/packs from https://www.kernel.org/pub/software/scm/git/docs/gitrepository-layout.html
 - [x] Recognize 404 pages which return 200 
 - [x] Introduce ignore SSL/TLS verification in SVN/CVS
-
-
 
