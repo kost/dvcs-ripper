@@ -1,7 +1,7 @@
 dvcs-ripper
 ===========
 
-Rip web accessible (distributed) version control systems: SVN, GIT, Mercurial/hg, ...
+Rip web accessible (distributed) version control systems: SVN, GIT, Mercurial/hg, bzr, ...
 
 It can rip repositories even when directory browsing is turned off. 
 
@@ -11,7 +11,7 @@ Make sure to position yourself in empty directory where you want repositories to
 
 - Perl
 - Perl modules: LWP, IO::Socket::SSL
-- (D)VCS client which you want to rip (cvs, svn, git, hg, ...)
+- (D)VCS client of what you want to rip (cvs, svn, git, hg, bzr, ...)
 
 
 GIT
@@ -38,6 +38,18 @@ or if you would like to ignore SSL certification verification (with -s):
 
 `rip-hg.pl -s -v -u http://www.example.com/.hg/`
 
+Bazaar/bzr
+===========
+Example run (for bzr):
+
+`rip-bzr.pl -v -u http://www.example.com/.bzr/`
+
+It will automatically do `bzr revert`
+
+or if you would like to ignore SSL certification verification (with -s):
+
+`rip-bzr.pl -s -v -u http://www.example.com/.bzr/`
+
 
 SVN
 ===========
@@ -62,10 +74,10 @@ This will not rip CVS, but it will display useful info.
 ### ToDo
 - [ ] Recognize 404 pages which return 200 in SVN/CVS
 - [ ] Support for brute forcing pack names 
-- [ ] Bzr support
 
 ### Done
 - [x] Support for objects/info/packs from https://www.kernel.org/pub/software/scm/git/docs/gitrepository-layout.html
 - [x] Recognize 404 pages which return 200 
 - [x] Introduce ignore SSL/TLS verification in SVN/CVS
+- [x] Bzr support
 
