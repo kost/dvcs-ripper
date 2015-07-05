@@ -7,11 +7,21 @@ It can rip repositories even when directory browsing is turned off.
 
 Make sure to position yourself in empty directory where you want repositories to be downloaded/cloned.
 
-### Requirements
+## Requirements
 
 - Perl
-- Perl modules: LWP, IO::Socket::SSL
+- Perl modules: LWP, IO::Socket::SSL and for newer SVN: DBD::SQlite and DBI
 - (D)VCS client of what you want to rip (cvs, svn, git, hg, bzr, ...)
+
+### Requirements on Debian/Ubuntu
+
+You can easily install perl requirements:
+
+`sudo apt-get install perl libio-socket-ssl-perl libdbd-sqlite3-perl libclass-dbi-perl`
+
+And if you need all clients supported:
+
+`sudo apt-get install cvs subversion git bzr mercurial`
 
 
 GIT
