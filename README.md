@@ -23,6 +23,16 @@ And if you need all clients supported:
 
 `sudo apt-get install cvs subversion git bzr mercurial`
 
+## Docker
+
+In case you just want docker version, it is here:
+
+https://github.com/kost/docker-webscan/tree/master/alpine-dvcs-ripper
+
+Just say something like:
+
+`docker run --rm -it -v /path/to/host/work:/work:rw k0st/alpine-dvcs-ripper rip-git.pl -v -u http://www.example.org/.git`
+
 
 GIT
 ===========
