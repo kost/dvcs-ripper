@@ -56,6 +56,7 @@ Getopt::Long::Configure ("bundling");
 my $result = GetOptions (
 	"a|agent=s" => \$config{'agent'},
 	"b|branch=s" => \$config{'branch'},
+	"e|redis=s" => \$config{'redis'},
 	"u|url=s" => \$config{'url'},
 	"p|proxy=s" => \$config{'proxy'},
 	"c|checkout!" => \$config{'checkout'},
@@ -133,6 +134,25 @@ if ($config{'resp404correct'}) {
 	}
 	$config{'resp404content'}=$oldchopresp;
 }
+
+my $haveredis = eval
+{
+  require Redis;
+  Redis->import();
+  1;
+};
+
+if ($config{'redis'}) {
+	if ($haveredis) {
+		print STDERR "[i] Using redis: $config{'redis'}\n";
+		$config{'redisobj'} = Redis->new(server => $config{'redis'});
+		$config{'redisobj'}->del("dvcs-good");
+		$config{'redisobj'}->del("dvcs-bad");
+	} else {
+		print STDERR "[i] Please install Perl Redis module\n";
+	}
+}
+
 
 foreach my $file (@gitfiles) {
 	my $furl = $config{'url'}."/".$file;
@@ -269,8 +289,21 @@ sub getobject {
 	my ($gd,$ref) = @_;
 	my $rdir = substr ($ref,0,2);
 	my $rfile = substr ($ref,2);
+	if ($config{'redisobj'}) {
+		print STDERR "[!] Checking redis\n";
+		return HTTP::Response->new(404) if $config{'redisobj'}->hexists("dvcs-bad",$ref);
+		return HTTP::Response->new(200) if $config{'redisobj'}->hexists("dvcs-good",$ref);
+	}
 	mkdir $gd."objects/$rdir";
-	getfile("objects/$rdir/$rfile",$gd."objects/$rdir/$rfile");
+	my $r=getfile("objects/$rdir/$rfile",$gd."objects/$rdir/$rfile");
+	if ($config{'redisobj'}) {
+		if ($r->is_success) {
+			$config{'redisobj'}->hset("dvcs-good", $ref, 200);
+		} else {
+			$config{'redisobj'}->hset("dvcs-bad", $ref, 404);
+		}
+	}
+	return $r;
 }
 
 sub getreq {
