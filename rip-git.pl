@@ -59,6 +59,7 @@ my $result = GetOptions (
 	"u|url=s" => \$config{'url'},
 	"p|proxy=s" => \$config{'proxy'},
 	"c|checkout!" => \$config{'checkout'},
+	"n|newer" => \$config{'newer'},
 	"r|redirects=i" => \$config{'redirects'},
 	"s|sslignore!" => \$config{'sslignore'},
 	"t|tasks=i" => \$config{'tasks'},
@@ -310,6 +311,13 @@ sub writefile {
 
 sub getfile {
 	my ($file,$outfile) = @_;
+	if ($config{'newer'}) {
+		if (-e $outfile) {
+			print STDERR "[!] Not overwriting file: $outfile\n" if ($config{'verbose'}>0);
+			my $r = HTTP::Response->new(200);
+			return $r;
+		}
+	}
 	my $furl = $config{'url'}."/".$file;
 	my $req = HTTP::Request->new(GET => $furl);
 	# Pass request to the user agent and get a response back
@@ -343,6 +351,7 @@ sub help {
 	print " -c	perform 'git checkout -f' on end (default)\n";
 	print " -b <s>	Use branch <s> (default: $config{'branch'})\n";
 	print " -a <s>	Use agent <s> (default: $config{'agent'})\n";
+	print " -n	do not overwrite files\n";
 	print " -r <i>	specify max number of redirects (default: $config{'redirects'})\n";
 	print " -s	do not verify SSL cert\n";
 	print " -t <i>	use <i> parallel tasks\n";
