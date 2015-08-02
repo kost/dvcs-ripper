@@ -2,6 +2,10 @@
 
 use strict;
 
+use IPC::SysV qw(IPC_PRIVATE S_IRWXU IPC_CREAT SEM_UNDO ftok);
+use IPC::Semaphore;
+use IPC::SharedMem;
+
 use IO::Socket::SSL;
 use LWP;
 use LWP::UserAgent;
@@ -54,6 +58,7 @@ my $result = GetOptions (
 	"p|proxy=s" => \$config{'proxy'},
 	"c|checkout!" => \$config{'checkout'},
 	"s|sslignore!" => \$config{'sslignore'},
+	"t|tasks=s" => \$config{'tasks'},
 	"v|verbose+"  => \$config{'verbose'},
 	"h|help" => \&help
 );
@@ -170,6 +175,35 @@ if ($res->is_success) {
 	}
 }
 
+# Parallel Tasks magic
+my $haveppf = eval
+{
+  require Parallel::ForkManager;
+  Parallel::ForkManager->import();
+  1;
+};
+my $pm;
+my $sem;
+my $shm;
+my $shmsize=16;
+if ($config{'tasks'}>0) {
+	if ($haveppf) {
+		$pm = Parallel::ForkManager->new($config{'tasks'});
+		$sem = new IPC::Semaphore( ftok( $0, 0 ), 1, S_IRWXU | IPC_CREAT );
+		if ($sem) {
+			$sem->setval(0,0);
+			$shm = IPC::SharedMem->new(IPC_PRIVATE, 16, S_IRWXU);
+		} else {
+			die("Error creating IPC Semaphore: $!\n");
+		}
+		print STDERR "[i] Using $config{'tasks'} parallel tasks\n" if ($config{'verbose'}>0);
+	
+	} else {
+		print STDERR "[!] Please install Parallel::Prefork CPAN module for parallel requests\n";
+		$config{'tasks'}=0;
+	}
+}
+
 my $pcount=1;
 my $fcount=0;
 while ($pcount>0) {
@@ -177,21 +211,42 @@ while ($pcount>0) {
 	open(PIPE,"git fsck |") or die "cannot find git: $!";
 	$pcount=0;
 	$fcount=0;
+	if ($config{'tasks'}>0) {
+		$sem->setval(0,0);
+		$shm->write($fcount,0,$shmsize);
+	}
 	while (<PIPE>) {
 		chomp;
 		if (/^missing/) {
 			my @getref = split (/\s+/);
-			my $res = getobject($gd,$getref[2]); # 3rd field is sha1 
-			if ($res->is_success) {
-				$fcount++;
-			}
 			$pcount++;
+			if ($config{'tasks'}>0) {
+				$pm->start() and next;
+				my $res = getobject($gd,$getref[2]); # 3rd field is sha1 
+				if ($res->is_success) {
+					$sem->op( 0, 1, SEM_UNDO );
+					$fcount=$shm->read(0, $shmsize);
+					$shm->write($fcount+1,0,$shmsize);
+					$sem->op( 0, -1, SEM_UNDO );
+				}
+				$pm->finish;
+			} else {
+				my $res = getobject($gd,$getref[2]); # 3rd field is sha1 
+				if ($res->is_success) {
+					$fcount++;
+				}
+			}
 		}
 	}
+	if ($config{'tasks'}>0) {
+		print STDERR "[i] Waiting for children to finish\n" if ($config{'verbose'}>0);
+		$pm->wait_all_children();
+		$fcount = $shm->read(0, $shmsize);
+	}
 	close(PIPE);
-	print STDERR "[i] Got items with git fsck: $pcount\n" if ($config{'verbose'}>0);
-	print STDERR "[i] Items fetched: $fcount\n" if ($config{'verbose'}>0);
+	print STDERR "[i] Got items with git fsck: $pcount, Items fetched: $fcount\n" if ($config{'verbose'}>0);
 	if ($fcount == 0) {
+		print STDERR "[!] No items successfully fetched any more. Exiting\n"; 
 		last;
 	}
 }
@@ -280,6 +335,7 @@ sub help {
 	print " -b <s>	Use branch <s> (default: $config{'branch'})\n";
 	print " -a <s>	Use agent <s> (default: $config{'agent'})\n";
 	print " -s	do not verify SSL cert\n";
+	print " -t <i>	use <i> parallel tasks\n";
 	print " -p <h>	use proxy <h> for connections\n";
 	print " -v	verbose (-vv will be more verbose)\n";
 	print "\n";
