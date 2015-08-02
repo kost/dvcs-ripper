@@ -57,6 +57,7 @@ my $result = GetOptions (
 	"a|agent=s" => \$config{'agent'},
 	"b|branch=s" => \$config{'branch'},
 	"e|redis=s" => \$config{'redis'},
+	"g|session=s" => \$config{'session'},
 	"u|url=s" => \$config{'url'},
 	"p|proxy=s" => \$config{'proxy'},
 	"c|checkout!" => \$config{'checkout'},
@@ -135,6 +136,12 @@ if ($config{'resp404correct'}) {
 	$config{'resp404content'}=$oldchopresp;
 }
 
+unless ($config{'session'}) {
+	$config{'session'}=randomstr(8);
+}
+
+print STDERR "[i] Using session name: $config{'session'}\n";
+
 my $haveredis = eval
 {
   require Redis;
@@ -146,8 +153,8 @@ if ($config{'redis'}) {
 	if ($haveredis) {
 		print STDERR "[i] Using redis: $config{'redis'}\n";
 		$config{'redisobj'} = Redis->new(server => $config{'redis'});
-		$config{'redisobj'}->del("dvcs-good");
-		$config{'redisobj'}->del("dvcs-bad");
+		$config{'redis-good'} = $config{'session'}."-good";
+		$config{'redis-bad'} = $config{'session'}."-bad";
 	} else {
 		print STDERR "[i] Please install Perl Redis module\n";
 	}
@@ -276,7 +283,7 @@ while ($pcount>0) {
 	close(PIPE);
 	print STDERR "[i] Got items with git fsck: $pcount, Items fetched: $fcount\n" if ($config{'verbose'}>0);
 	if ($fcount == 0) {
-		print STDERR "[!] No items successfully fetched any more. Exiting\n"; 
+		print STDERR "[!] No more items to fetch. That's it!\n"; 
 		last;
 	}
 }
@@ -290,17 +297,17 @@ sub getobject {
 	my $rdir = substr ($ref,0,2);
 	my $rfile = substr ($ref,2);
 	if ($config{'redisobj'}) {
-		print STDERR "[!] Checking redis\n";
-		return HTTP::Response->new(404) if $config{'redisobj'}->hexists("dvcs-bad",$ref);
-		return HTTP::Response->new(200) if $config{'redisobj'}->hexists("dvcs-good",$ref);
+		return HTTP::Response->new(404) if $config{'redisobj'}->hexists($config{'redis-bad'},$ref);
+		return HTTP::Response->new(200) if $config{'redisobj'}->hexists($config{'redis-good'},$ref);
+		print STDERR "[!] Not found in redis cache: $ref\n" if ($config{'verbose'}>1);; 
 	}
 	mkdir $gd."objects/$rdir";
 	my $r=getfile("objects/$rdir/$rfile",$gd."objects/$rdir/$rfile");
 	if ($config{'redisobj'}) {
 		if ($r->is_success) {
-			$config{'redisobj'}->hset("dvcs-good", $ref, 200);
+			$config{'redisobj'}->hset($config{'redis-good'}, $ref, 200);
 		} else {
-			$config{'redisobj'}->hset("dvcs-bad", $ref, 404);
+			$config{'redisobj'}->hset($config{'redis-bad'}, $ref, 404);
 		}
 	}
 	return $r;
@@ -383,6 +390,8 @@ sub help {
 	print "\n";
 	print " -c	perform 'git checkout -f' on end (default)\n";
 	print " -b <s>	Use branch <s> (default: $config{'branch'})\n";
+	print " -e <s>	Use redis <s> server as server:port\n";
+	print " -g <s>	Use session name <s> for redis (default: random)\n";
 	print " -a <s>	Use agent <s> (default: $config{'agent'})\n";
 	print " -n	do not overwrite files\n";
 	print " -r <i>	specify max number of redirects (default: $config{'redirects'})\n";
