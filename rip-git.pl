@@ -21,6 +21,8 @@ $config{'agent'} = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.7; rv:10.0.2) Geck
 $config{'verbose'}=0;
 $config{'checkout'}=1;
 
+$config{'redirects'}=0;
+
 $config{'respdetectmax'}=3;
 $config{'resp404size'}=256;
 $config{'resp404reqsize'}=32;
@@ -57,8 +59,9 @@ my $result = GetOptions (
 	"u|url=s" => \$config{'url'},
 	"p|proxy=s" => \$config{'proxy'},
 	"c|checkout!" => \$config{'checkout'},
+	"r|redirects=i" => \$config{'redirects'},
 	"s|sslignore!" => \$config{'sslignore'},
-	"t|tasks=s" => \$config{'tasks'},
+	"t|tasks=i" => \$config{'tasks'},
 	"v|verbose+"  => \$config{'verbose'},
 	"h|help" => \&help
 );
@@ -76,6 +79,7 @@ my @commits;
 my $ua = LWP::UserAgent->new;
 
 $ua->agent($config{'agent'});
+$ua->max_redirect($config{'redirects'});
 
 if ($config{'sslignore'}) {
 	$ua->ssl_opts(SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_NONE, verify_hostname => 0);
@@ -91,6 +95,11 @@ mkdir $gd;
 
 print STDERR "[i] Downloading git files from $config{'url'}\n" if ($config{'verbose'}>0);
 
+if ($config{'verbose'}>2) {
+	print STDERR "[i] Using agent: $config{'agent'}\n";
+	print STDERR "[i] Using redirects: $config{'redirects'}\n";
+	print STDERR "[i] Using proxy: $config{'proxy'}\n";
+}
 
 my @resp404;
 my $respdetectmax=$config{'respdetectmax'};
@@ -334,6 +343,7 @@ sub help {
 	print " -c	perform 'git checkout -f' on end (default)\n";
 	print " -b <s>	Use branch <s> (default: $config{'branch'})\n";
 	print " -a <s>	Use agent <s> (default: $config{'agent'})\n";
+	print " -r <i>	specify max number of redirects (default: $config{'redirects'})\n";
 	print " -s	do not verify SSL cert\n";
 	print " -t <i>	use <i> parallel tasks\n";
 	print " -p <h>	use proxy <h> for connections\n";
