@@ -10,7 +10,10 @@ Make sure to position yourself in empty directory where you want repositories to
 ## Requirements
 
 - Perl
-- Perl modules: LWP, IO::Socket::SSL and for newer SVN: DBD::SQlite and DBI
+- Perl modules: 
+  - required: LWP, IO::Socket::SSL 
+  - for newer SVN: DBD::SQlite and DBI
+  - for faster GIT: Parallel::ForkManager and Redis
 - (D)VCS client of what you want to rip (cvs, svn, git, hg, bzr, ...)
 
 ### Requirements on Debian/Ubuntu
@@ -18,6 +21,9 @@ Make sure to position yourself in empty directory where you want repositories to
 You can easily install perl requirements:
 
 `sudo apt-get install perl libio-socket-ssl-perl libdbd-sqlite3-perl libclass-dbi-perl`
+
+Optional requirements (faster git rip):
+`sudo apt-get install libparallel-forkmanager-perl libredis-perl`
 
 And if you need all clients supported:
 
