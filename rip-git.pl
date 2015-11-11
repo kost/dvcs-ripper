@@ -327,11 +327,11 @@ sub getobject {
 		$redisc = Redis->new(server => $config{'redis'});
 	}
 	if ($config{'redisobj'}) {
-		if $redisc->hexists($config{'redis-bad'},$ref) {
+		if ($redisc->hexists($config{'redis-bad'},$ref)) {
 			$redisc->quit;
 			return HTTP::Response->new(404);
 		}
-		if $redisc->hexists($config{'redis-good'},$ref); {
+		if ($redisc->hexists($config{'redis-good'},$ref)) {
 			$redisc->quit;
 			return HTTP::Response->new(200);
 		}
