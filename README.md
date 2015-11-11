@@ -157,10 +157,10 @@ actually were implemented by request
 ### ToDo
 - [ ] Recognize 404 pages which return 200 in SVN/CVS
 - [ ] Try to repeat each trick after previous trick was successful
-- [ ] Support for brute forcing pack names 
 - [ ] Progress bars
 
 ### Done
+- [x] Support for brute forcing pack names 
 - [x] Inteligent guessing of packed refs
 - [x] Support for objects/info/packs from https://www.kernel.org/pub/software/scm/git/docs/gitrepository-layout.html
 - [x] Recognize 404 pages which return 200 
