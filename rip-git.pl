@@ -14,6 +14,8 @@ use HTTP::Request;
 use HTTP::Response;
 use Getopt::Long;
 
+use Digest::SHA qw(sha1 sha1_hex);
+
 my $configfile="$ENV{HOME}/.rip-git";
 my %config;
 $config{'branch'} = "master";
@@ -59,7 +61,8 @@ my $result = GetOptions (
 	"b|branch=s" => \$config{'branch'},
 	"c|checkout!" => \$config{'checkout'},
 	"e|redis=s" => \$config{'redis'},
-	"g|session=s" => \$config{'session'},
+	"g|guess" => \$config{'intguess'},
+	"k|session=s" => \$config{'session'},
 	"n|newer" => \$config{'newer'},
 	"m|mkdir" => \$config{'mkdir'},
 	"o|output" => \$config{'output'},
@@ -165,6 +168,13 @@ my $haveredis = eval
   Redis->import();
   1;
 };
+
+my $havealg = eval {
+	require Algorithm::Combinatorics;
+	Algorithm::Combinatorics->import();
+	1;
+};
+
 
 if ($config{'redis'}) {
 	if ($haveredis) {
@@ -308,6 +318,9 @@ while ($pcount>0) {
 		last;
 	}
 }
+if ($config{'intguess'}) {
+	intguess();
+}
 
 if ($config{'redisobj'}) {
 	print STDERR "[i] Closing redis connection\n" if ($config{'verbose'}>0);
@@ -320,6 +333,56 @@ if ($config{'checkout'}) {
 
 if ($config{'output'}) {
 	chdir $cwd;
+}
+
+# get packed refs from given digest
+sub getpackedref {
+	my ($digest) = @_;
+
+	my $packfn="objects/pack/".$digest.".pack";
+	getfile($packfn,$gd.$packfn);
+	my $idxfn="objects/pack/".$digest.".idx";
+	getfile($idxfn,$gd.$idxfn);
+}
+
+# calculate possible digest from array of digests
+sub getintitem {
+	my ($p) = @_;
+
+	my $sha = Digest::SHA->new(1); # use SHA-1
+	foreach my $item (@{$p}) {
+		$sha->add($item."\n");
+	}
+	my $digestguess=$sha->hexdigest();
+	getpackedref($digestguess);
+}
+
+# try to intelligently guess packed refs
+sub intguess  {
+	print STDERR "[!] Performing intelligent guessing of packed refs\n";
+	my @missingitems = $config{'redis-bad'};
+	my $iter = permutations(\@missingitems);
+	my $pmg;
+	if ($config{'tasks'}>0) {
+		if ($haveppf) {
+			$pmg = Parallel::ForkManager->new($config{'tasks'});
+		}
+	}
+	while (my $p = $iter->next) {
+		print STDERR "[i] Guessing item from permutations\n" if ($config{'verbose'}>0);
+		if ($config{'tasks'}>0) {
+			$pmg->start() and next;
+			getintitem($p);
+			$pmg->finish;
+		} else {
+			getintitem($p);
+		}
+	}
+	if ($config{'tasks'}>0) {
+		print STDERR "[i] Waiting for children to finish\n" if ($config{'verbose'}>0);
+		$pmg->wait_all_children();
+	}
+	print STDERR "[!] Finished intelligent guessing of packed refs\n";
 }
 
 sub getobject {
@@ -432,7 +495,8 @@ sub help {
 	print " -c	perform 'git checkout -f' on end (default)\n";
 	print " -b <s>	Use branch <s> (default: $config{'branch'})\n";
 	print " -e <s>	Use redis <s> server as server:port\n";
-	print " -g <s>	Use session name <s> for redis (default: random)\n";
+	print " -g	Try to inteligently guess name of packed refs\n";
+	print " -k <s>	Use session name <s> for redis (default: random)\n";
 	print " -a <s>	Use agent <s> (default: $config{'agent'})\n";
 	print " -n	do not overwrite files\n";
 	print " -m	mkdir URL name when outputting (works good with -o)\n";
