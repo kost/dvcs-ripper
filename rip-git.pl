@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+c#!/usr/bin/perl
 
 use strict;
 
@@ -288,6 +288,11 @@ while ($pcount>0) {
 	}
 }
 
+if ($config{'redisobj'}) {
+	print STDERR "[i] Closing redis connection\n" if ($config{'verbose'}>0);
+	$config{'redisobj'}->quit;
+}
+
 if ($config{'checkout'}) {
 	system("git checkout -f");
 }
@@ -296,19 +301,30 @@ sub getobject {
 	my ($gd,$ref) = @_;
 	my $rdir = substr ($ref,0,2);
 	my $rfile = substr ($ref,2);
+	my $redisc;
 	if ($config{'redisobj'}) {
-		return HTTP::Response->new(404) if $config{'redisobj'}->hexists($config{'redis-bad'},$ref);
-		return HTTP::Response->new(200) if $config{'redisobj'}->hexists($config{'redis-good'},$ref);
+		$redisc = Redis->new(server => $config{'redis'});
+	}
+	if ($config{'redisobj'}) {
+		if $redisc->hexists($config{'redis-bad'},$ref) {
+			$redisc->quit;
+			return HTTP::Response->new(404);
+		}
+		if $redisc->hexists($config{'redis-good'},$ref); {
+			$redisc->quit;
+			return HTTP::Response->new(200);
+		}
 		print STDERR "[!] Not found in redis cache: $ref\n" if ($config{'verbose'}>1);; 
 	}
 	mkdir $gd."objects/$rdir";
 	my $r=getfile("objects/$rdir/$rfile",$gd."objects/$rdir/$rfile");
 	if ($config{'redisobj'}) {
 		if ($r->is_success) {
-			$config{'redisobj'}->hset($config{'redis-good'}, $ref, 200);
+			$redisc->hset($config{'redis-good'}, $ref, 200);
 		} else {
-			$config{'redisobj'}->hset($config{'redis-bad'}, $ref, 404);
+			$redisc->hset($config{'redis-bad'}, $ref, 404);
 		}
+		$redisc->quit;
 	}
 	return $r;
 }
