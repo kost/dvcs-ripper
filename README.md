@@ -97,6 +97,63 @@ Example run (for CVS):
 
 This will not rip CVS, but it will display useful info.
 
+## Advance usage examples
+
+Some examples how it can be used
+
+### Output handling
+
+Download git tree to specific output dir:
+
+`rip-git.pl -o /my/previously/made/dir -v -u http://www.example.com/.git/`
+
+Download git tree to specific output dir (creating dir `http__www.example.com_.git_` for url):
+
+`rip-git.pl -m -o /dir -v -u http://www.example.com/.git/`
+
+### Redis usage with docker
+
+Create Redis docker container:
+
+`docker run --rm --name myredis -it -v /my/host/dir/data:/data:rw k0st/alpine-redis`
+
+In another terminal, just link redis container and say something like this:
+
+`docker run --rm --link=myredis:redis -it -v /path/to/host/work:/work:rw k0st/alpine-dvcs-ripper rip-git.pl -e docker -v -u http://www.example.org/.git -m -o /work`
+
+### Using redis for resuming work of ripping
+
+Create Redis docker container:
+
+`docker run --name redisdvcs -it -v /my/host/dir/data:/data:rw k0st/alpine-redis`
+
+In another terminal, just link redis container and say something like this:
+
+`docker run --link=redisdvcs:redis -it -v /path/to/host/work:/work:rw k0st/alpine-dvcs-ripper rip-git.pl -n -e docker -v -u http://www.example.org/.git -m -o /work`
+
+### Abusing redis for massive parallel tasks
+
+Create global NFS and mount /work on each client. Create global Redis docker container:
+
+`docker run --name redisdvcs -it -v /my/host/dir/data:/data:rw k0st/alpine-redis`
+
+In another terminal, just link redis container and say something like this on 1st client
+
+`docker run -it -v /path/to/host/work:/work:rw k0st/alpine-dvcs-ripper rip-git.pl -n -e global.docker.ip -v -u http://www.example.org/.git -t 10 -c -m -o /work`
+
+In another terminal, just link redis container and say something like this on 2nd client:
+
+`docker run -it -v /path/to/host/work:/work:rw k0st/alpine-dvcs-ripper rip-git.pl -n -e global.docker.ip -v -u http://www.example.org/.git -t 10 -c -m -o /work`
+
+and so on...
+
+You need to perform `git checkout -f` yourself on the end - of course!
+
+## Future
+
+Feel free to implement something and send pull request. Feel free to suggest any feature. Lot of features
+actually were implemented by request
+
 ### ToDo
 - [ ] Recognize 404 pages which return 200 in SVN/CVS
 - [ ] Support for brute forcing pack names 

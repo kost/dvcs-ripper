@@ -435,6 +435,8 @@ sub help {
 	print " -g <s>	Use session name <s> for redis (default: random)\n";
 	print " -a <s>	Use agent <s> (default: $config{'agent'})\n";
 	print " -n	do not overwrite files\n";
+	print " -m	mkdir URL name when outputting (works good with -o)\n";
+	print " -o	specify output dir\n";
 	print " -r <i>	specify max number of redirects (default: $config{'redirects'})\n";
 	print " -s	do not verify SSL cert\n";
 	print " -t <i>	use <i> parallel tasks\n";
