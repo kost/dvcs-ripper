@@ -168,6 +168,10 @@ my $haveredis = eval
 
 if ($config{'redis'}) {
 	if ($haveredis) {
+		if ($ENV{'REDIS_PORT_6379_TCP_ADDR'}) {
+			print STDERR "[i] Detected redis docker environment variable, overriding: $config{'redis'}\n";
+			$config{'redis'}=$ENV{'REDIS_PORT_6379_TCP_ADDR'};
+		}
 		print STDERR "[i] Using redis: $config{'redis'}\n";
 		$config{'redisobj'} = Redis->new(server => $config{'redis'});
 		$config{'redis-good'} = $config{'session'}."-good";
