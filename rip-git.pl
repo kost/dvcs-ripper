@@ -71,6 +71,7 @@ my $result = GetOptions (
 	"s|sslignore!" => \$config{'sslignore'},
 	"t|tasks=i" => \$config{'tasks'},
 	"u|url=s" => \$config{'url'},
+	"x|brute" => \$config{'brute'},
 	"v|verbose+"  => \$config{'verbose'},
 	"h|help" => \&help
 );
@@ -164,17 +165,16 @@ print STDERR "[i] Using session name: $config{'session'}\n";
 
 my $haveredis = eval
 {
-  require Redis;
-  Redis->import();
-  1;
+	require Redis;
+	Redis->import();
+	1;
 };
 
 my $havealg = eval {
 	require Algorithm::Combinatorics;
-	Algorithm::Combinatorics->import();
+	Algorithm::Combinatorics->import(qw(variations_with_repetition permutations));
 	1;
 };
-
 
 if ($config{'redis'}) {
 	if ($haveredis) {
@@ -318,8 +318,13 @@ while ($pcount>0) {
 		last;
 	}
 }
+
 if ($config{'intguess'}) {
 	intguess();
+}
+
+if ($config{'brute'}) {
+	bruteguess();
 }
 
 if ($config{'redisobj'}) {
@@ -333,6 +338,35 @@ if ($config{'checkout'}) {
 
 if ($config{'output'}) {
 	chdir $cwd;
+}
+
+sub bruteguess  {
+	print STDERR "[!] Performing pure brute force guessing of packed refs\n";
+	my $pmb;
+	my @digestchars=qw(0 1 2 3 4 5 6 7 8 9 0 a b c d e f);
+	my $iter = variations_with_repetition(\@digestchars, 40);
+	if ($config{'tasks'}>0) {
+		if ($haveppf) {
+			$pmb = Parallel::ForkManager->new($config{'tasks'});
+		}
+	}
+	while (my $c = $iter->next) {
+		my $p="";
+		foreach my $i (@{$c}) { $p = $p.$i }
+		print STDERR "[i] Brute forcing digest item: $p \n" if ($config{'verbose'}>0);
+		if ($config{'tasks'}>0) {
+			$pmb->start() and next;
+			getpackedref($p);
+			$pmb->finish;
+		} else {
+			getpackedref($p);
+		}
+	}
+	if ($config{'tasks'}>0) {
+		print STDERR "[i] Waiting for children to finish\n" if ($config{'verbose'}>0);
+		$pmb->wait_all_children();
+	}
+	print STDERR "[!] Finished brute force guessing of packed refs. Does world still exists? :)\n";
 }
 
 # get packed refs from given digest
@@ -505,6 +539,7 @@ sub help {
 	print " -s	do not verify SSL cert\n";
 	print " -t <i>	use <i> parallel tasks\n";
 	print " -p <h>	use proxy <h> for connections\n";
+	print " -x	brute force packed refs (extremely slow!!)\n";
 	print " -v	verbose (-vv will be more verbose)\n";
 	print "\n";
 	print "Example: $0 -v -u http://www.example.com/.git/\n";
