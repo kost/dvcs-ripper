@@ -1,7 +1,8 @@
-c#!/usr/bin/perl
+#!/usr/bin/perl
 
 use strict;
 
+use Cwd;
 use IPC::SysV qw(IPC_PRIVATE S_IRWXU IPC_CREAT SEM_UNDO ftok);
 use IPC::Semaphore;
 use IPC::SharedMem;
@@ -56,15 +57,17 @@ Getopt::Long::Configure ("bundling");
 my $result = GetOptions (
 	"a|agent=s" => \$config{'agent'},
 	"b|branch=s" => \$config{'branch'},
+	"c|checkout!" => \$config{'checkout'},
 	"e|redis=s" => \$config{'redis'},
 	"g|session=s" => \$config{'session'},
-	"u|url=s" => \$config{'url'},
-	"p|proxy=s" => \$config{'proxy'},
-	"c|checkout!" => \$config{'checkout'},
 	"n|newer" => \$config{'newer'},
+	"m|mkdir" => \$config{'mkdir'},
+	"o|output" => \$config{'output'},
+	"p|proxy=s" => \$config{'proxy'},
 	"r|redirects=i" => \$config{'redirects'},
 	"s|sslignore!" => \$config{'sslignore'},
 	"t|tasks=i" => \$config{'tasks'},
+	"u|url=s" => \$config{'url'},
 	"v|verbose+"  => \$config{'verbose'},
 	"h|help" => \&help
 );
@@ -77,6 +80,20 @@ my @gitfiles=(
 "index",
 "packed-refs"
 );
+
+my $cwd=cwd();
+my $urldir=$config{'url'};
+$urldir=~s#[;:&~/]#_#ig;
+
+if ($config{'output'}) {
+	$cwd = cwd();
+	if ($config{'mkdir'}) {
+		mkdir $config{'output'}."/".$urldir;
+		chdir $config{'output'}."/".$urldir;
+	} else {
+		chdir $config{'output'};
+	}
+}
 
 my @commits;
 my $ua = LWP::UserAgent->new;
@@ -295,6 +312,10 @@ if ($config{'redisobj'}) {
 
 if ($config{'checkout'}) {
 	system("git checkout -f");
+}
+
+if ($config{'output'}) {
+	chdir $cwd;
 }
 
 sub getobject {
