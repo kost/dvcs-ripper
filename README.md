@@ -20,7 +20,7 @@ Make sure to position yourself in empty directory where you want repositories to
 
 You can easily install perl requirements:
 
-`sudo apt-get install perl libio-socket-ssl-perl libdbd-sqlite3-perl libclass-dbi-perl`
+`sudo apt-get install perl libio-socket-ssl-perl libdbd-sqlite3-perl libclass-dbi-perl libio-all-lwp-perl`
 
 Optional requirements (faster git rip):
 `sudo apt-get install libparallel-forkmanager-perl libredis-perl libalgorithm-combinatorics-perl`
