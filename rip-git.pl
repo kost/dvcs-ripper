@@ -50,7 +50,7 @@ if (-e $configfile) {
 	    next unless length;     # anything left?
 	    my ($var, $value) = split(/\s*=\s*/, $_, 2);
 	    $config{$var} = $value;
-	} 
+	}
 	close(CONFIG);
 }
 
@@ -73,6 +73,7 @@ my $result = GetOptions (
 	"u|url=s" => \$config{'url'},
 	"x|brute" => \$config{'brute'},
 	"v|verbose+"  => \$config{'verbose'},
+	"ba|basicauth=s"  => \$config{'basicauth'},
 	"h|help" => \&help
 );
 
@@ -104,6 +105,11 @@ my $ua = LWP::UserAgent->new;
 
 $ua->agent($config{'agent'});
 $ua->max_redirect($config{'redirects'});
+if($config{'basicauth'}) {
+	my $key = sprintf '%s %s', "Basic", $config{'basicauth'};
+	$ua->default_header('Authorization' => $key);
+}
+
 
 if ($config{'sslignore'}) {
 	$ua->ssl_opts(SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_NONE, verify_hostname => 0);
@@ -226,7 +232,7 @@ my $res = getfile("refs/heads/".$config{'branch'},$gd."refs/heads/".$config{'bra
 mkdir $gd."refs/remotes";
 mkdir $gd."refs/tags";
 
-# process packs file: objects/info/packs 
+# process packs file: objects/info/packs
 my $infopacks='objects/info/packs';
 my $res=getrealreq($infopacks);
 if ($res->is_success) {
@@ -265,7 +271,7 @@ if ($config{'tasks'}>0) {
 			die("Error creating IPC Semaphore: $!\n");
 		}
 		print STDERR "[i] Using $config{'tasks'} parallel tasks\n" if ($config{'verbose'}>0);
-	
+
 	} else {
 		print STDERR "[!] Please install Parallel::Prefork CPAN module for parallel requests\n";
 		$config{'tasks'}=0;
@@ -290,7 +296,7 @@ while ($pcount>0) {
 			$pcount++;
 			if ($config{'tasks'}>0) {
 				$pm->start() and next;
-				my $res = getobject($gd,$getref[2]); # 3rd field is sha1 
+				my $res = getobject($gd,$getref[2]); # 3rd field is sha1
 				if ($res->is_success) {
 					$sem->op( 0, 1, SEM_UNDO );
 					$fcount=$shm->read(0, $shmsize);
@@ -299,7 +305,7 @@ while ($pcount>0) {
 				}
 				$pm->finish;
 			} else {
-				my $res = getobject($gd,$getref[2]); # 3rd field is sha1 
+				my $res = getobject($gd,$getref[2]); # 3rd field is sha1
 				if ($res->is_success) {
 					$fcount++;
 				}
@@ -314,7 +320,7 @@ while ($pcount>0) {
 	close(PIPE);
 	print STDERR "[i] Got items with git fsck: $pcount, Items fetched: $fcount\n" if ($config{'verbose'}>0);
 	if ($fcount == 0) {
-		print STDERR "[!] No more items to fetch. That's it!\n"; 
+		print STDERR "[!] No more items to fetch. That's it!\n";
 		last;
 	}
 }
@@ -436,7 +442,7 @@ sub getobject {
 			$redisc->quit;
 			return HTTP::Response->new(200);
 		}
-		print STDERR "[!] Not found in redis cache: $ref\n" if ($config{'verbose'}>1);; 
+		print STDERR "[!] Not found in redis cache: $ref\n" if ($config{'verbose'}>1);;
 	}
 	mkdir $gd."objects/$rdir";
 	my $r=getfile("objects/$rdir/$rfile",$gd."objects/$rdir/$rfile");
@@ -468,14 +474,14 @@ sub getrealreq {
 			print STDERR "[d] got 200 for packs but checking content\n" if ($config{'verbose'}>1);
 			my $chopresp=substr($res->content,0,$config{'resp404size'});
 			if ($chopresp eq $config{'resp404content'}) {
-				print STDERR "[!] Not found for: 404 as 200\n" 
+				print STDERR "[!] Not found for: 404 as 200\n"
 				if ($config{'verbose'}>0);
 				# return not found
 				my $r = HTTP::Response->new(404);
 				# $r = HTTP::Response->new( $code, $msg, $header, $content )
 				return $r;
 			}
-		} 
+		}
 	}
 	return $res;
 }
@@ -505,18 +511,18 @@ sub getfile {
 			print STDERR "[d] got 200 for $file, but checking content\n" if ($config{'verbose'}>1);;
 			my $chopresp=substr($res->content,0,$config{'resp404size'});
 			if ($chopresp eq $config{'resp404content'}) {
-				print STDERR "[!] Not found for $file: 404 as 200\n" 
+				print STDERR "[!] Not found for $file: 404 as 200\n"
 				if ($config{'verbose'}>0);
 				my $r = HTTP::Response->new(404);
 				return $r;
 			}
-		} 
+		}
 		print STDERR "[d] found $file\n" if ($config{'verbose'}>0);;
 		open (out,">$outfile") or die ("cannot open file: $!");
 		print out $res->content;
 		close (out);
 	} else {
-		print STDERR "[!] Not found for $file: ".$res->status_line."\n" 
+		print STDERR "[!] Not found for $file: ".$res->status_line."\n"
 		if ($config{'verbose'}>0);
 	}
 	return $res;
@@ -541,12 +547,12 @@ sub help {
 	print " -p <h>	use proxy <h> for connections\n";
 	print " -x	brute force packed refs (extremely slow!!)\n";
 	print " -v	verbose (-vv will be more verbose)\n";
+	print " -ba	<s>	set basic auth key\n";
 	print "\n";
 	print "Example: $0 -v -u http://www.example.com/.git/\n";
 	print "Example: $0 # with url and options in $configfile\n";
 	print "Example: $0 -v -u -p socks://localhost:1080 http://www.example.com/.git/\n";
 	print "For socks like proxy, make sure you have LWP::Protocol::socks\n";
-	
+
 	exit 0;
 }
-
