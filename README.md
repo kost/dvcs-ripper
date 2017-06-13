@@ -161,7 +161,7 @@ actually were implemented by request
 
 ### Done
 - [x] Support for brute forcing pack names 
-- [x] Inteligent guessing of packed refs
+- [x] Intelligent guessing of packed refs
 - [x] Support for objects/info/packs from https://www.kernel.org/pub/software/scm/git/docs/gitrepository-layout.html
 - [x] Recognize 404 pages which return 200 
 - [x] Introduce ignore SSL/TLS verification in SVN/CVS
