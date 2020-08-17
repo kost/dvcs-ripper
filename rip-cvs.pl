@@ -65,7 +65,7 @@ if ($config{'sslignore'}) {
 }
 
 # normalize URL
-if ($config{'url'} =~ /\/\CVS/) {
+if ($config{'url'} =~ /\/CVS/) {
 	$config{'scmurl'} = $config{'url'};
 	$config{'regurl'} = $config{'url'};
 	$config{'regurl'} =~ s/\/CVS//;
