@@ -68,6 +68,7 @@ if ($config{'sslignore'}) {
 }
 
 # normalize URL
+$config{'url'} =~ s/\/$//; # strip trailing slash
 if ($config{'url'} =~ /\/\.svn/) {
 	$config{'scmurl'} = $config{'url'};
 	$config{'regurl'} = $config{'url'};
@@ -141,6 +142,7 @@ sub downloadsvnfiles {
 	my ($url,$dir) = @_;
 	foreach my $file (@scmfiles) {
 		my $furl = "$url/$config{'scmdir'}/$file";
+		$furl =~ s/^\///; # strip leading slash (for scmentries)
 		getfile($furl,"$dir/$config{'scmdir'}/$file");
 	}
 }
